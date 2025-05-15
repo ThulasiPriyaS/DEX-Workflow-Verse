@@ -201,7 +201,7 @@ export default function WorkflowList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {workflows.map((workflow: Workflow) => (
+              {Array.isArray(workflows) && workflows.map((workflow: Workflow) => (
                 <TableRow key={workflow.id}>
                   <TableCell className="font-medium">{workflow.name}</TableCell>
                   <TableCell>{workflow.description || "—"}</TableCell>

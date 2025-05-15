@@ -184,6 +184,15 @@ export default function Home() {
                 <span className="material-icons text-sm">folder_open</span>
                 <span>Load</span>
               </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = "/workflows"}
+                className="flex items-center space-x-1 bg-dark-200 hover:bg-dark-100"
+              >
+                <span className="material-icons text-sm">list</span>
+                <span>Workflows</span>
+              </Button>
             </div>
             
             <WalletConnector />
