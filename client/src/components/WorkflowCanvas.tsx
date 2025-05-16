@@ -44,12 +44,14 @@ export function WorkflowCanvas() {
           if (nodeIndex !== -1) {
             const node = updatedNodes[nodeIndex];
             setSelectedNode(change.selected ? node : null);
+            // Update global workflow context if needed
+            window.selectedWorkflowNode = change.selected ? node : null;
           }
         }
       });
       return updatedNodes;
     });
-  }, [setNodes, setSelectedNode]);
+  }, [setNodes]);
 
   const onEdgesChange = useCallback((changes: any) => {
     setEdges((eds) => eds);

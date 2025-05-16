@@ -47,10 +47,13 @@ type LightningConfig = CommonConfig & {
 };
 
 export function ConfigPanel() {
-  // Temporary replacement until we restore the workflow context
-  const selectedNode = null;
+  const selectedNode = (window as any).selectedWorkflowNode;
   const updateNodeData = (nodeId: string, data: any) => {
-    console.log("Update node data temporarily disabled", nodeId, data);
+    if (!selectedNode) return;
+    const event = new CustomEvent('updateNodeData', { 
+      detail: { nodeId, data } 
+    });
+    window.dispatchEvent(event);
   };
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(true);
