@@ -188,10 +188,19 @@ export default function Home() {
               <Button 
                 variant="outline" 
                 onClick={() => window.location.href = "/workflows"}
-                className="flex items-center space-x-1 bg-dark-200 hover:bg-dark-100"
+                className="flex items-center space-x-1 bg-dark-200 hover:bg-dark-100 mr-2"
               >
                 <span className="material-icons text-sm">list</span>
                 <span>Workflows</span>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = "/visual"}
+                className="flex items-center space-x-1 bg-dark-200 hover:bg-dark-100"
+              >
+                <span className="material-icons text-sm">schema</span>
+                <span>Visual Builder</span>
               </Button>
             </div>
             

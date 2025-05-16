@@ -6,12 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Workflows from "@/pages/workflows";
+import VisualWorkflow from "@/pages/visual-workflow";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/workflows" component={Workflows} />
+      <Route path="/visual" component={VisualWorkflow} />
       <Route component={NotFound} />
     </Switch>
   );

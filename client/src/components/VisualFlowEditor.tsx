@@ -99,12 +99,12 @@ export const NODE_TEMPLATES = [
 
 // Function to create a new node from a template
 export const createNodeFromTemplate = (template: any, position: { x: number, y: number }) => {
-  const id = nanoid();
+  const id = generateId();
   
   // Find the corresponding action template if it's an action node
   let config = {};
   if (template.type === 'actionNode' && template.actionType) {
-    const actionTemplate = ACTION_TEMPLATES.find(t => t.id === template.actionType);
+    const actionTemplate = ACTION_TEMPLATES.find((t: any) => t.id === template.actionType);
     if (actionTemplate) {
       config = { ...actionTemplate.defaultConfig };
     }
@@ -143,7 +143,7 @@ const VisualFlowEditor = () => {
     (connection: Connection) => {
       const newEdge = {
         ...connection,
-        id: `e-${nanoid()}`,
+        id: `e-${generateId()}`,
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
         markerEnd: {
@@ -438,7 +438,7 @@ const VisualFlowEditor = () => {
           >
             <Controls />
             <MiniMap />
-            <Background variant="dots" gap={12} size={1} />
+            <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
             
             <Panel position="top-right">
               <div className="bg-white p-2 rounded-md shadow-md">
