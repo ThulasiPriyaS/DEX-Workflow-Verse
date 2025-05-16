@@ -1,7 +1,7 @@
 import React from 'react';
 import { WalletProvider, useWallet } from "@/pages/home";
 import { WalletConnector } from "@/components/WalletConnector";
-import VisualFlowEditorWrapper from '@/components/VisualFlowEditor';
+import SimpleVisualEditorWrapper from '@/components/SimpleVisualEditor';
 
 export default function VisualWorkflowPage() {
   return (
@@ -22,7 +22,7 @@ export default function VisualWorkflowPage() {
           </p>
           
           <div className="h-[700px]">
-            <VisualFlowEditorWrapper />
+            <SimpleVisualEditorWrapper />
           </div>
         </main>
       </div>
