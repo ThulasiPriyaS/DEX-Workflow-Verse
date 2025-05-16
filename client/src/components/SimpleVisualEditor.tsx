@@ -13,11 +13,22 @@ import ReactFlow, {
   Node,
   NodeTypes,
   Panel,
+  getIncomers,
+  getOutgoers,
+  getConnectedEdges,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { ACTION_TEMPLATES } from './action-templates';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { 
+  AlertCircle, 
+  CheckCircle, 
+  PlayCircle, 
+  ListChecks, 
+  ChevronRight, 
+  X
+} from 'lucide-react';
 
 // Node components
 const ActionNode = ({ data }: { data: any }) => {
@@ -122,6 +133,25 @@ const NODE_TEMPLATES = [
 // Generate unique IDs
 const generateId = () => `${Math.random().toString(36).substr(2, 9)}`;
 
+// Validation types
+interface ValidationError {
+  nodeId?: string;
+  type: 'connection' | 'property' | 'general';
+  message: string;
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+}
+
+interface ExecutionStep {
+  nodeId: string;
+  type: string;
+  label: string;
+  details: string;
+}
+
 // Main component
 function SimpleVisualEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -129,6 +159,10 @@ function SimpleVisualEditor() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [workflowName, setWorkflowName] = useState('');
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [showValidationDetails, setShowValidationDetails] = useState(false);
+  const [executionPreview, setExecutionPreview] = useState<ExecutionStep[]>([]);
+  const [showExecutionPreview, setShowExecutionPreview] = useState(false);
   const { toast } = useToast();
   
   // Handle connections between nodes
@@ -187,6 +221,198 @@ function SimpleVisualEditor() {
     setSelectedNode(node);
   };
   
+  // Validate the workflow
+  const validateWorkflow = () => {
+    const errors: ValidationError[] = [];
+    
+    // Check if there's at least one node
+    if (nodes.length === 0) {
+      errors.push({
+        type: 'general',
+        message: 'Workflow must contain at least one node'
+      });
+      setValidationResult({ valid: false, errors });
+      return { valid: false, errors };
+    }
+    
+    // Check for start node
+    const startNodes = nodes.filter(node => 
+      node.type === 'startEndNode' && node.data.subType === 'start'
+    );
+    
+    if (startNodes.length === 0) {
+      errors.push({
+        type: 'general',
+        message: 'Workflow must have a start node'
+      });
+    } else if (startNodes.length > 1) {
+      errors.push({
+        type: 'general',
+        message: 'Workflow cannot have multiple start nodes'
+      });
+    }
+    
+    // Check for connectivity from start node
+    if (startNodes.length === 1) {
+      const startNode = startNodes[0];
+      const outgoers = getOutgoers(startNode, nodes, edges);
+      if (outgoers.length === 0) {
+        errors.push({
+          nodeId: startNode.id,
+          type: 'connection',
+          message: 'Start node must connect to at least one other node'
+        });
+      }
+    }
+    
+    // Check action nodes for required properties
+    nodes.forEach(node => {
+      if (node.type === 'actionNode') {
+        const actionType = node.data.type;
+        if (actionType) {
+          const template = ACTION_TEMPLATES.find(t => t.id === actionType);
+          if (template) {
+            Object.entries(template.parameterSchema).forEach(([key, schema]: [string, any]) => {
+              if (schema.required && 
+                  (!node.data.config || 
+                   !node.data.config[key] || 
+                   node.data.config[key] === '')) {
+                errors.push({
+                  nodeId: node.id,
+                  type: 'property',
+                  message: `Missing required field: ${schema.label} for node "${node.data.label}"`
+                });
+              }
+            });
+          }
+        }
+        
+        // Check for incoming connections (except for nodes directly after start)
+        const incomers = getIncomers(node, nodes, edges);
+        if (incomers.length === 0 && startNodes.length > 0) {
+          // If there's no incoming connection and it's not directly after start
+          const directlyAfterStart = edges.some(
+            edge => 
+              edge.target === node.id && 
+              startNodes.some(startNode => edge.source === startNode.id)
+          );
+          
+          if (!directlyAfterStart) {
+            errors.push({
+              nodeId: node.id,
+              type: 'connection',
+              message: `Node "${node.data.label}" is not connected to any previous node`
+            });
+          }
+        }
+      }
+    });
+    
+    const result = { valid: errors.length === 0, errors };
+    setValidationResult(result);
+    setShowValidationDetails(errors.length > 0);
+    
+    if (errors.length === 0) {
+      toast({
+        title: 'Validation Successful',
+        description: 'Your workflow is properly configured.',
+      });
+    } else {
+      toast({
+        title: 'Validation Failed',
+        description: `${errors.length} issue${errors.length > 1 ? 's' : ''} found. See details below.`,
+        variant: 'destructive',
+      });
+    }
+    
+    return result;
+  };
+  
+  // Generate execution preview
+  const generateExecutionPreview = () => {
+    const steps: ExecutionStep[] = [];
+    const visited = new Set<string>();
+    
+    // Find start node
+    const startNode = nodes.find(n => n.type === 'startEndNode' && n.data.subType === 'start');
+    if (!startNode) {
+      toast({
+        title: 'Error',
+        description: 'Cannot generate preview - workflow must have a start node',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // BFS traversal function
+    const traverseWorkflow = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      
+      const node = nodes.find(n => n.id === nodeId);
+      if (!node) return;
+      
+      if (node.type === 'actionNode') {
+        const actionType = node.data.type;
+        const actionTemplate = ACTION_TEMPLATES.find(t => t.id === actionType);
+        
+        let details = '';
+        if (node.data.config && actionTemplate) {
+          // Format configuration details
+          details = Object.entries(node.data.config)
+            .filter(([key, value]) => value !== undefined && value !== '')
+            .map(([key, value]) => {
+              const paramSchema = actionTemplate.parameterSchema[key];
+              const label = paramSchema ? paramSchema.label : key;
+              return `${label}: ${value}`;
+            })
+            .join(', ');
+        }
+        
+        steps.push({
+          nodeId: node.id,
+          type: actionType || 'unknown',
+          label: node.data.label,
+          details: details || 'No configuration'
+        });
+      } else if (node.type === 'conditionNode') {
+        steps.push({
+          nodeId: node.id,
+          type: 'condition',
+          label: node.data.label,
+          details: node.data.condition || 'No condition specified'
+        });
+      } else if (node.type === 'startEndNode' && node.data.subType === 'end') {
+        steps.push({
+          nodeId: node.id,
+          type: 'end',
+          label: node.data.label,
+          details: 'Workflow completes'
+        });
+      }
+      
+      // Find outgoing connections and follow them
+      const outgoingEdges = edges.filter(e => e.source === nodeId);
+      outgoingEdges.forEach(edge => {
+        traverseWorkflow(edge.target);
+      });
+    };
+    
+    // Start traversal from the start node
+    traverseWorkflow(startNode.id);
+    
+    setExecutionPreview(steps);
+    setShowExecutionPreview(true);
+    
+    if (steps.length === 0) {
+      toast({
+        title: 'Warning',
+        description: 'No executable actions found in the workflow.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
   // Save workflow
   const saveWorkflow = async () => {
     if (!workflowName) {
@@ -195,6 +421,12 @@ function SimpleVisualEditor() {
         description: 'Please provide a workflow name',
         variant: 'destructive',
       });
+      return;
+    }
+    
+    // Validate before saving
+    const validationResult = validateWorkflow();
+    if (!validationResult.valid) {
       return;
     }
     
@@ -261,11 +493,28 @@ function SimpleVisualEditor() {
           ))}
         </div>
         
-        <div className="mt-auto pt-4 border-t">
+        <div className="mt-auto pt-4 border-t space-y-2">
+          <button
+            onClick={validateWorkflow}
+            className="w-full py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <ListChecks className="h-4 w-4" />
+            Validate Workflow
+          </button>
+          
+          <button
+            onClick={generateExecutionPreview}
+            className="w-full py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <PlayCircle className="h-4 w-4" />
+            Preview Execution
+          </button>
+          
           <button
             onClick={saveWorkflow}
-            className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
           >
+            <Save className="h-4 w-4" />
             Save Workflow
           </button>
         </div>
@@ -362,6 +611,190 @@ function SimpleVisualEditor() {
             >
               Delete Node
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Validation Results Modal */}
+      {showValidationDetails && validationResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium flex items-center">
+                {validationResult.valid ? (
+                  <>
+                    <CheckCircle className="text-green-500 mr-2 h-5 w-5" />
+                    Validation Successful
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="text-red-500 mr-2 h-5 w-5" />
+                    Validation Failed
+                  </>
+                )}
+              </h3>
+              <button 
+                onClick={() => setShowValidationDetails(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {validationResult.valid ? (
+              <p className="text-green-600">Your workflow is valid and ready to be saved or executed.</p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-red-600 mb-2">
+                  Found {validationResult.errors.length} issue{validationResult.errors.length > 1 ? 's' : ''} in your workflow:
+                </p>
+                <ul className="space-y-2">
+                  {validationResult.errors.map((error, index) => (
+                    <li key={index} className="border-l-4 border-red-500 pl-3 py-2 bg-red-50">
+                      <div className="flex items-start">
+                        <AlertCircle className="text-red-500 mr-2 h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-medium">
+                            {error.type === 'connection' ? 'Connection Issue' : 
+                             error.type === 'property' ? 'Missing Property' : 
+                             'General Issue'}
+                          </div>
+                          <div className="text-sm text-gray-700">{error.message}</div>
+                          {error.nodeId && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Node ID: {error.nodeId}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-gray-600 mt-4">
+                  Please fix these issues before saving or executing your workflow.
+                </p>
+              </div>
+            )}
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowValidationDetails(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Execution Preview Modal */}
+      {showExecutionPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium flex items-center">
+                <PlayCircle className="text-purple-500 mr-2 h-5 w-5" />
+                Execution Preview
+              </h3>
+              <button 
+                onClick={() => setShowExecutionPreview(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {executionPreview.length === 0 ? (
+              <p className="text-gray-600">No executable steps found in your workflow.</p>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-gray-600 mb-4">
+                  Your workflow will execute the following {executionPreview.length} step{executionPreview.length > 1 ? 's' : ''} in order:
+                </p>
+                <ol className="relative border-l-2 border-gray-300">
+                  {executionPreview.map((step, index) => {
+                    // Determine icon based on step type
+                    let icon;
+                    let bgColor;
+                    
+                    switch (step.type) {
+                      case 'httpRequest':
+                        icon = '🌐';
+                        bgColor = 'bg-blue-100';
+                        break;
+                      case 'smartContractCall':
+                        icon = '📝';
+                        bgColor = 'bg-indigo-100';
+                        break;
+                      case 'defiSwap':
+                        icon = '🔄';
+                        bgColor = 'bg-green-100';
+                        break;
+                      case 'tokenTransfer':
+                        icon = '💸';
+                        bgColor = 'bg-yellow-100';
+                        break;
+                      case 'emailSend':
+                        icon = '📧';
+                        bgColor = 'bg-pink-100';
+                        break;
+                      case 'condition':
+                        icon = '⚖️';
+                        bgColor = 'bg-amber-100';
+                        break;
+                      case 'end':
+                        icon = '🏁';
+                        bgColor = 'bg-red-100';
+                        break;
+                      default:
+                        icon = '⚙️';
+                        bgColor = 'bg-gray-100';
+                    }
+                    
+                    return (
+                      <li key={step.nodeId} className="mb-6 ml-6">
+                        <span className={`absolute flex items-center justify-center w-8 h-8 rounded-full -left-4 ${bgColor} text-lg`}>
+                          {icon}
+                        </span>
+                        <div className="ml-2">
+                          <h3 className="flex items-center text-lg font-semibold">
+                            {index + 1}. {step.label}
+                            <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded bg-gray-200">
+                              {step.type}
+                            </span>
+                          </h3>
+                          <p className="text-sm text-gray-500 mt-1">{step.details}</p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            )}
+            
+            <div className="mt-6 flex justify-end space-x-2">
+              <button
+                onClick={() => setShowExecutionPreview(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  const validated = validateWorkflow();
+                  if (validated.valid) {
+                    toast({
+                      title: 'Ready to Execute',
+                      description: 'Your workflow is valid and ready to run.',
+                    });
+                  }
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-md"
+              >
+                Validate & Execute
+              </button>
+            </div>
           </div>
         </div>
       )}
