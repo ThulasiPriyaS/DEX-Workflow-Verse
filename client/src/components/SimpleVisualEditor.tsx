@@ -27,10 +27,11 @@ import {
   PlayCircle, 
   ListChecks, 
   ChevronRight, 
-  X
+  X,
+  Save
 } from 'lucide-react';
 
-// Node components
+// Node components with connection handles
 const ActionNode = ({ data }: { data: any }) => {
   const actionType = data.type || 'httpRequest';
   const label = data.label || 'Action';
@@ -47,7 +48,7 @@ const ActionNode = ({ data }: { data: any }) => {
   };
   
   return (
-    <div className="px-4 py-2 border-2 border-gray-300 rounded-md shadow-sm bg-white min-w-[150px]">
+    <div className="px-4 py-2 border-2 border-gray-300 rounded-md shadow-sm bg-white min-w-[150px] relative">
       <div className="flex items-center gap-2">
         <div className="text-2xl">{getIcon()}</div>
         <div>
@@ -55,13 +56,25 @@ const ActionNode = ({ data }: { data: any }) => {
           <div className="text-xs text-gray-500">{actionType}</div>
         </div>
       </div>
+      
+      {/* Connection handles - visible dots that you can drag from/to */}
+      <div 
+        className="absolute top-1/2 left-0 w-3 h-3 bg-green-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-crosshair border border-white"
+        style={{ zIndex: 1000 }}
+        data-handle="target"
+      />
+      <div 
+        className="absolute top-1/2 right-0 w-3 h-3 bg-blue-500 rounded-full transform translate-x-1/2 -translate-y-1/2 cursor-crosshair border border-white"
+        style={{ zIndex: 1000 }}
+        data-handle="source"
+      />
     </div>
   );
 };
 
 const ConditionNode = ({ data }: { data: any }) => {
   return (
-    <div className="px-4 py-2 border-2 border-gray-300 rounded-md shadow-sm bg-yellow-50 min-w-[150px]">
+    <div className="px-4 py-2 border-2 border-gray-300 rounded-md shadow-sm bg-yellow-50 min-w-[150px] relative">
       <div className="flex items-center gap-2">
         <div className="text-2xl">⚖️</div>
         <div>
@@ -69,6 +82,24 @@ const ConditionNode = ({ data }: { data: any }) => {
           <div className="text-xs text-gray-500">Branch workflow</div>
         </div>
       </div>
+      
+      {/* Connection handles - visible dots that you can drag from/to */}
+      <div 
+        className="absolute top-1/2 left-0 w-3 h-3 bg-green-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-crosshair border border-white"
+        style={{ zIndex: 1000 }}
+        data-handle="target"
+      />
+      <div 
+        className="absolute top-1/2 right-0 w-3 h-3 bg-blue-500 rounded-full transform translate-x-1/2 -translate-y-1/2 cursor-crosshair border border-white"
+        style={{ zIndex: 1000 }}
+        data-handle="source"
+      />
+      <div 
+        className="absolute bottom-0 right-1/2 w-3 h-3 bg-orange-500 rounded-full transform translate-x-1/2 translate-y-1/2 cursor-crosshair border border-white"
+        style={{ zIndex: 1000 }}
+        data-handle="source"
+        data-handleid="false"
+      />
     </div>
   );
 };
@@ -78,8 +109,25 @@ const StartEndNode = ({ data }: { data: any }) => {
   return (
     <div className={`px-4 py-2 border-2 border-gray-300 rounded-full shadow-sm ${
       isStart ? 'bg-green-50' : 'bg-red-50'
-    } min-w-[100px] flex items-center justify-center`}>
+    } min-w-[100px] flex items-center justify-center relative`}>
       <div className="text-lg font-medium">{data.label}</div>
+      
+      {/* Start nodes only have outputs, end nodes only have inputs */}
+      {isStart && (
+        <div 
+          className="absolute top-1/2 right-0 w-3 h-3 bg-blue-500 rounded-full transform translate-x-1/2 -translate-y-1/2 cursor-crosshair border border-white"
+          style={{ zIndex: 1000 }}
+          data-handle="source"
+        />
+      )}
+      
+      {!isStart && (
+        <div 
+          className="absolute top-1/2 left-0 w-3 h-3 bg-green-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-crosshair border border-white"
+          style={{ zIndex: 1000 }}
+          data-handle="target"
+        />
+      )}
     </div>
   );
 };
@@ -235,7 +283,7 @@ function SimpleVisualEditor() {
       return { valid: false, errors };
     }
     
-    // Check for start node
+    // Find start nodes
     const startNodes = nodes.filter(node => 
       node.type === 'startEndNode' && node.data.subType === 'start'
     );
@@ -271,30 +319,37 @@ function SimpleVisualEditor() {
         const actionType = node.data.type;
         if (actionType) {
           const template = ACTION_TEMPLATES.find(t => t.id === actionType);
-          if (template) {
-            Object.entries(template.parameterSchema).forEach(([key, schema]: [string, any]) => {
-              if (schema.required && 
-                  (!node.data.config || 
-                   !node.data.config[key] || 
-                   node.data.config[key] === '')) {
-                errors.push({
-                  nodeId: node.id,
-                  type: 'property',
-                  message: `Missing required field: ${schema.label} for node "${node.data.label}"`
-                });
-              }
-            });
+          if (template && template.parameterSchema) {
+            // Handle any parameter schema checking in a safer way
+            try {
+              Object.entries(template.parameterSchema || {}).forEach(([key, schema]: [string, any]) => {
+                if (schema && schema.required && 
+                    (!node.data.config || 
+                     !node.data.config[key] || 
+                     node.data.config[key] === '')) {
+                  errors.push({
+                    nodeId: node.id,
+                    type: 'property',
+                    message: `Missing required field: ${schema.label || key} for node "${node.data.label}"`
+                  });
+                }
+              });
+            } catch (err) {
+              console.error('Error checking node properties:', err);
+            }
           }
         }
         
         // Check for incoming connections (except for nodes directly after start)
         const incomers = getIncomers(node, nodes, edges);
-        if (incomers.length === 0 && startNodes.length > 0) {
+        const startNodesArray = nodes.filter(n => n.type === 'startEndNode' && n.data.subType === 'start');
+        
+        if (incomers.length === 0 && startNodesArray.length > 0) {
           // If there's no incoming connection and it's not directly after start
           const directlyAfterStart = edges.some(
             edge => 
               edge.target === node.id && 
-              startNodes.some(startNode => edge.source === startNode.id)
+              startNodesArray.some(sNode => edge.source === sNode.id)
           );
           
           if (!directlyAfterStart) {
@@ -521,7 +576,7 @@ function SimpleVisualEditor() {
       </div>
       
       {/* Flow canvas */}
-      <div className="flex-grow" ref={reactFlowWrapper}>
+      <div className="flex-grow h-[calc(100vh-2rem)]" ref={reactFlowWrapper}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
