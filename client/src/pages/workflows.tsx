@@ -40,15 +40,18 @@ function WorkflowsContent() {
           <Button
             onClick={() => setActiveTab("create-workflow")}
             variant={activeTab === "create-workflow" ? "default" : "outline"}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            size="lg"
           >
-            <PlusCircle className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-5 w-5 mr-2" />
             Create Workflow
           </Button>
           <Button
             onClick={() => setActiveTab("my-workflows")}
             variant={activeTab === "my-workflows" ? "default" : "outline"}
+            size="lg"
           >
-            <ListChecks className="h-4 w-4 mr-2" />
+            <ListChecks className="h-5 w-5 mr-2" />
             My Workflows
           </Button>
         </div>
