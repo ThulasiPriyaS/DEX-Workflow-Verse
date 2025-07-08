@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertWorkflowSchema, insertWorkflowActionSchema, insertWorkflowExecutionSchema, ExecutionStatusEnum } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import * as ethers from "ethers";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // === WORKFLOW ROUTES ===
@@ -260,6 +261,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
       valid: isValidAddress,
       message: isValidAddress ? "Wallet address is valid" : "Invalid wallet address format"
     });
+  });
+
+  // === DEFI ACTIONS (SIMULATION, REALISTIC) ===
+  // Simulated Swap endpoint
+  /**
+   * POST /api/swap
+   * Request: { from, to, amount, slippage, action ("swap"), [privateKey] }
+   * Response: { success, simulated, tx: { hash, from, to, value, status, action, timestamp }, message }
+   */
+  app.post("/api/swap", async (req: Request, res: Response) => {
+    const { from, to, amount, slippage, action = "swap", privateKey } = req.body;
+    try {
+      // Simulate pending status
+      const txHash = "0x" + Math.random().toString(16).slice(2, 18).padEnd(64, "0");
+      const now = new Date();
+      // Mock reserves for simulation (e.g., ETH/USDC pool)
+      const reserves: { [key: string]: number[] } = {
+        "ETH/USDC": [1000, 2000000],
+        "USDC/ETH": [2000000, 1000],
+      };
+      let key = "ETH/USDC";
+      if (from && to && from.toUpperCase().includes("USDC")) key = "USDC/ETH";
+      const [reserveIn, reserveOut] = reserves[key];
+      const amountIn = parseFloat(amount);
+      let amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
+      const slippagePct = parseFloat(slippage || "0.5");
+      const minAmountOut = amountOut * (1 - slippagePct / 100);
+      setTimeout(() => {
+        res.json({
+          success: true,
+          simulated: true,
+          tx: {
+            hash: txHash,
+            from,
+            to,
+            value: amountIn,
+            status: "confirmed",
+            action,
+            output: minAmountOut,
+            timestamp: now.toISOString(),
+            privateKey,
+          },
+          message: `Transaction confirmed! Swapped ${amountIn} ${key.split("/")[0]} for ~${minAmountOut.toFixed(2)} ${key.split("/")[1]}`
+        });
+      }, 2500); // 2.5s delay to mimic mining
+    } catch (error) {
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Simulated Stake endpoint
+  /**
+   * POST /api/stake
+   * Request: { from, token, amount, action ("stake"), [privateKey] }
+   * Response: { success, simulated, tx: { hash, from, to, value, status, action, timestamp }, message }
+   */
+  app.post("/api/stake", async (req: Request, res: Response) => {
+    const { from, token, amount, action = "stake", privateKey } = req.body;
+    try {
+      const txHash = "0x" + Math.random().toString(16).slice(2, 18).padEnd(64, "0");
+      const now = new Date();
+      setTimeout(() => {
+        res.json({
+          success: true,
+          simulated: true,
+          tx: {
+            hash: txHash,
+            from,
+            to: token + "_staking_contract",
+            value: parseFloat(amount),
+            status: "confirmed",
+            action,
+            timestamp: now.toISOString(),
+            privateKey,
+          },
+          message: `Transaction confirmed! Staked ${amount} ${token}`
+        });
+      }, 2500);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // Simulated Claim Rewards endpoint
+  /**
+   * POST /api/claim-rewards
+   * Request: { from, token, action ("claim-rewards"), [privateKey] }
+   * Response: { success, simulated, tx: { hash, from, to, value, status, action, timestamp }, message }
+   */
+  app.post("/api/claim-rewards", async (req: Request, res: Response) => {
+    const { from, token, action = "claim-rewards", privateKey } = req.body;
+    try {
+      const reward = (Math.random() * 10).toFixed(4);
+      const txHash = "0x" + Math.random().toString(16).slice(2, 18).padEnd(64, "0");
+      const now = new Date();
+      setTimeout(() => {
+        res.json({
+          success: true,
+          simulated: true,
+          tx: {
+            hash: txHash,
+            from,
+            to: token + "_staking_contract",
+            value: parseFloat(reward),
+            status: "confirmed",
+            action,
+            timestamp: now.toISOString(),
+            privateKey,
+          },
+          message: `Transaction confirmed! Claimed ${reward} ${token}`
+        });
+      }, 2500);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
+    }
   });
 
   const httpServer = createServer(app);

@@ -15,8 +15,8 @@ export function WalletConnector() {
     setShowModal(false);
   };
 
-  const handleConnect = async (address: string) => {
-    await connectWallet(address);
+  const handleConnect = async (address: string, privateKey?: string) => {
+    await connectWallet(address, privateKey);
     setShowModal(false);
   };
 

@@ -4,13 +4,14 @@ import { apiRequest } from '@/lib/queryClient';
 
 interface Wallet {
   address: string;
+  privateKey?: string;
   isConnected: boolean;
 }
 
 interface WalletContextType {
   wallet: Wallet | null;
   isConnecting: boolean;
-  connectWallet: (address: string) => Promise<boolean>;
+  connectWallet: (address: string, privateKey?: string) => Promise<boolean>;
   disconnectWallet: () => Promise<boolean>;
 }
 
@@ -38,7 +39,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   }, []);
 
-  const connectWallet = useCallback(async (address: string) => {
+  const connectWallet = useCallback(async (address: string, privateKey?: string) => {
     if (!address) return false;
 
     setIsConnecting(true);
@@ -49,7 +50,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       const data = await res.json();
 
       if (data.valid) {
-        const newWallet = { address, isConnected: true };
+        const newWallet = { address, privateKey, isConnected: true };
         setWallet(newWallet);
         localStorage.setItem('wallet', JSON.stringify(newWallet));
         
