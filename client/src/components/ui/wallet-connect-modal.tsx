@@ -69,7 +69,7 @@ export function WalletConnectModal({ isOpen, onClose, onConnect }: WalletConnect
     setManualKey("");
     setManualMode(false);
   };
-
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-dark-200 border border-dark-100 sm:max-w-md">
@@ -78,23 +78,23 @@ export function WalletConnectModal({ isOpen, onClose, onConnect }: WalletConnect
         </DialogHeader>
         {!manualMode ? (
           <>
-            <div className="space-y-3 my-2">
-              {WALLET_OPTIONS.map((wallet) => (
-                <Button
-                  key={wallet.id}
-                  variant="outline"
-                  onClick={() => handleConnect(wallet.id)}
-                  className="w-full bg-dark-100 hover:bg-dark-300 transition p-3 rounded flex items-center justify-between h-auto"
-                >
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded flex items-center justify-center mr-3 bg-dark-300">
-                      <span className="material-icons text-primary">{wallet.icon}</span>
-                    </div>
-                    <span>{wallet.name}</span>
-                  </div>
-                  <span className="material-icons text-gray-400">chevron_right</span>
-                </Button>
-              ))}
+        <div className="space-y-3 my-2">
+          {WALLET_OPTIONS.map((wallet) => (
+            <Button
+              key={wallet.id}
+              variant="outline"
+              onClick={() => handleConnect(wallet.id)}
+              className="w-full bg-dark-100 hover:bg-dark-300 transition p-3 rounded flex items-center justify-between h-auto"
+            >
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded flex items-center justify-center mr-3 bg-dark-300">
+                  <span className="material-icons text-primary">{wallet.icon}</span>
+                </div>
+                <span>{wallet.name}</span>
+              </div>
+              <span className="material-icons text-gray-400">chevron_right</span>
+            </Button>
+          ))}
               <Button
                 variant="outline"
                 className="w-full bg-dark-100 hover:bg-dark-300 transition p-3 rounded flex items-center justify-between h-auto"
@@ -137,7 +137,7 @@ export function WalletConnectModal({ isOpen, onClose, onConnect }: WalletConnect
               <Button className="flex-1" onClick={handleManualConnect}>Connect</Button>
               <Button className="flex-1" variant="ghost" onClick={() => setManualMode(false)}>Cancel</Button>
             </div>
-          </div>
+        </div>
         )}
         <div className="border-t border-dark-100 pt-4 mt-2">
           <p className="text-xs text-gray-400 text-center">
