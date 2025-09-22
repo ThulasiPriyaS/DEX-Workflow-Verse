@@ -18,6 +18,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { ACTION_TEMPLATES } from './action-templates';
+import { TokenSelector } from './TokenSelector';
+import { getTokenByAddress } from '../lib/solana/tokenList';
 // Using built-in Node ID generator
 import { Trash2, Save, Play, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -634,6 +636,26 @@ function renderConfigFields(node: Node, updateNodeData: (id: string, data: any) 
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
+                </div>
+              );
+              
+            case "tokenSelector":
+              return (
+                <div key={key}>
+                  <label className="block text-sm font-medium mb-1">
+                    {paramDef.label}{paramDef.required && " *"}
+                  </label>
+                  <TokenSelector
+                    selectedToken={config[key] ? getTokenByAddress(config[key]) : undefined}
+                    onTokenSelect={(token) => {
+                      const newConfig = { ...config, [key]: token.address };
+                      updateNodeData(node.id, { config: newConfig });
+                    }}
+                    placeholder={`Select ${paramDef.label.toLowerCase()}`}
+                  />
+                  {paramDef.description && (
+                    <p className="text-xs text-gray-500 mt-1">{paramDef.description}</p>
+                  )}
                 </div>
               );
               

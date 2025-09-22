@@ -20,6 +20,8 @@ import { WorkflowNode } from './modules/WorkflowNode';
 import { ModuleType } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
+import { jupiterSwap } from '@/lib/solana/jupiterSwap';
+import { getTokenByAddress } from '@/lib/solana/tokenList';
 
 const nodeTypes: NodeTypes = {
   workflowNode: WorkflowNode,
@@ -202,20 +204,65 @@ export function WorkflowCanvas() {
       }
     }
 
-    // Simulate execution
-    toast({
-      title: 'Executing...',
-      description: 'Workflow is being executed',
-    });
+    // Execute: if there is a Jupiter Swap node, run a real devnet swap via Jupiter + Phantom
+    try {
+      const swapNode = nodes.find(n => n.data?.type === 'jupiterSwap');
+      if (!swapNode) {
+        toast({ title: 'No Jupiter Swap Found', description: 'Add a Jupiter Swap module to execute a swap.' });
+        return;
+      }
 
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+      // Read config from node
+      const cfg = (swapNode.data?.config || {}) as any;
+      const uiAmount = parseFloat(cfg.amount || '0.05');
+      const slippageBps = parseInt(cfg.slippageBps || '50');
+      
+      // Get token addresses from config
+      const inputMint = cfg.inputToken;
+      const outputMint = cfg.outputToken;
+      
+      if (!inputMint || !outputMint) {
+        toast({ title: 'Invalid Configuration', description: 'Please select both input and output tokens.', variant: 'destructive' });
+        return;
+      }
+      
+      // Get token info for decimals
+      const inputTokenInfo = getTokenByAddress(inputMint);
+      const inputDecimals = inputTokenInfo?.decimals || 9;
+
+      // Phantom must be connected on Devnet
+      const provider: any = (window as any).solana;
+      if (!provider?.isPhantom) {
+        toast({ title: 'Phantom Required', description: 'Install/Connect Phantom on Devnet.', variant: 'destructive' });
+        return;
+      }
+      if (!provider.publicKey) {
+        await provider.connect();
+      }
+      const userPublicKey = provider.publicKey.toString();
+
+      const inputSymbol = inputTokenInfo?.symbol || 'Token';
+      const outputTokenInfo = getTokenByAddress(outputMint);
+      const outputSymbol = outputTokenInfo?.symbol || 'Token';
+
+      toast({ title: 'Executing Swap...', description: `Swapping ${uiAmount} ${inputSymbol} -> ${outputSymbol} (devnet)` });
+      const { signature } = await jupiterSwap({
+        inputMint,
+        outputMint,
+        uiAmount,
+        inputDecimals,
+        slippageBps,
+        userPublicKey,
+      });
     
     toast({
-      title: 'Execution Successful',
-      description: 'Workflow executed successfully',
-      variant: 'default',
+        title: 'Swap Confirmed',
+        description: `Signature: ${signature.slice(0, 8)}... View in explorer`,
     });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: 'Swap Failed', description: String(err?.message || err), variant: 'destructive' });
+    }
   };
 
   return (
