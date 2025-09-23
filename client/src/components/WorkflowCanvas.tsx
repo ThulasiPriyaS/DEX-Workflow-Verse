@@ -17,11 +17,19 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Button } from "@/components/ui/button";
 import { WorkflowNode } from './modules/WorkflowNode';
-import { ModuleType } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { jupiterSwap } from '@/lib/solana/jupiterSwap';
 import { getTokenByAddress } from '@/lib/solana/tokenList';
+import { ACTION_TEMPLATES } from './action-templates';
+
+type ModuleType = "swap" | "jupiterSwap" | "stake" | "claim" | "bridge" | "lightning";
+
+// Helper function to get default configuration for a module type
+const getDefaultConfig = (moduleType: ModuleType) => {
+  const template = ACTION_TEMPLATES.find(t => t.id === moduleType);
+  return template?.defaultConfig || {};
+};
 
 const nodeTypes: NodeTypes = {
   workflowNode: WorkflowNode,
@@ -84,17 +92,20 @@ export function WorkflowCanvas() {
       const moduleType = event.dataTransfer.getData('application/reactflow') as ModuleType;
       if (!moduleType) return;
 
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-      const position = reactFlowInstance.project({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
       });
 
       const newNode: Node = {
         id: `${moduleType}-${Date.now()}`,
         type: 'workflowNode',
         position,
-        data: { type: moduleType, label: getModuleLabel(moduleType) },
+        data: { 
+          type: moduleType, 
+          label: getModuleLabel(moduleType),
+          config: getDefaultConfig(moduleType)
+        },
         draggable: true,
       };
 
@@ -221,8 +232,16 @@ export function WorkflowCanvas() {
       const inputMint = cfg.inputToken;
       const outputMint = cfg.outputToken;
       
+      console.log('Jupiter Swap Config:', cfg);
+      console.log('Input Token:', inputMint);
+      console.log('Output Token:', outputMint);
+      
       if (!inputMint || !outputMint) {
-        toast({ title: 'Invalid Configuration', description: 'Please select both input and output tokens.', variant: 'destructive' });
+        toast({ 
+          title: 'Invalid Configuration', 
+          description: `Please configure both tokens. Input: ${inputMint ? '✓' : '✗'}, Output: ${outputMint ? '✓' : '✗'}`, 
+          variant: 'destructive' 
+        });
         return;
       }
       
@@ -230,10 +249,10 @@ export function WorkflowCanvas() {
       const inputTokenInfo = getTokenByAddress(inputMint);
       const inputDecimals = inputTokenInfo?.decimals || 9;
 
-      // Phantom must be connected on Devnet
+      // Phantom must be connected - note we're using mainnet for Jupiter compatibility
       const provider: any = (window as any).solana;
       if (!provider?.isPhantom) {
-        toast({ title: 'Phantom Required', description: 'Install/Connect Phantom on Devnet.', variant: 'destructive' });
+        toast({ title: 'Phantom Required', description: 'Install/Connect Phantom wallet.', variant: 'destructive' });
         return;
       }
       if (!provider.publicKey) {
@@ -245,7 +264,10 @@ export function WorkflowCanvas() {
       const outputTokenInfo = getTokenByAddress(outputMint);
       const outputSymbol = outputTokenInfo?.symbol || 'Token';
 
-      toast({ title: 'Executing Swap...', description: `Swapping ${uiAmount} ${inputSymbol} -> ${outputSymbol} (devnet)` });
+      toast({ 
+        title: 'Executing Swap...', 
+        description: `Swapping ${uiAmount} ${inputSymbol} → ${outputSymbol} (mainnet with Jupiter)` 
+      });
       const { signature } = await jupiterSwap({
         inputMint,
         outputMint,
@@ -289,7 +311,7 @@ export function WorkflowCanvas() {
         </div>
       </div>
       
-      <div ref={reactFlowWrapper} className="flex-1 overflow-hidden relative">
+      <div ref={reactFlowWrapper} className="flex-1 overflow-hidden relative" style={{ width: '100%', height: '100%' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -368,6 +390,7 @@ export function WorkflowCanvas() {
 function getModuleLabel(type: ModuleType): string {
   switch (type) {
     case 'swap': return 'Swap';
+    case 'jupiterSwap': return 'Jupiter Swap';
     case 'stake': return 'Stake';
     case 'claim': return 'Claim Rewards';
     case 'bridge': return 'BTC Bridge';

@@ -16,6 +16,9 @@ export default defineConfig({
         ]
       : []),
   ],
+  define: {
+    global: 'globalThis',
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -27,5 +30,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+  },
+  optimizeDeps: {
+    include: ['buffer'],
   },
 });

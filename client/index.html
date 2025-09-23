@@ -11,6 +11,13 @@
     <meta property="og:description" content="Build powerful DeFi workflows with drag-and-drop modules. Connect your wallet, create and execute Bitcoin-backed asset operations with ease." />
     <meta property="og:type" content="website" />
     
+    <!-- Buffer polyfill for Solana -->
+    <script>
+      if (typeof global === 'undefined') {
+        var global = globalThis;
+      }
+    </script>
+    
     <!-- Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">

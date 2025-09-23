@@ -1,6 +1,7 @@
 import { ModuleCard } from "./modules/ModuleCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ModuleType } from "@shared/schema";
+
+type ModuleType = "swap" | "jupiterSwap" | "stake" | "claim" | "bridge" | "lightning";
 
 type ModuleInfo = {
   type: ModuleType;
@@ -19,6 +20,14 @@ const MODULES: ModuleInfo[] = [
     icon: "swap_horiz",
     color: "#3165F5",
     bgColor: "rgba(49, 101, 245, 0.2)",
+  },
+  {
+    type: "jupiterSwap",
+    title: "Jupiter Swap",
+    description: "Swap Solana tokens via Jupiter on Devnet",
+    icon: "currency_exchange",
+    color: "#9945FF",
+    bgColor: "rgba(153, 69, 255, 0.2)",
   },
   {
     type: "stake",
@@ -58,6 +67,10 @@ const CATEGORIES = [
   {
     name: "Core Operations",
     modules: ["swap", "stake", "claim"],
+  },
+  {
+    name: "Solana Operations", 
+    modules: ["jupiterSwap"],
   },
   {
     name: "Bitcoin Operations",

@@ -7,7 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 // import { useWorkflow } from "@/hooks/use-workflow";
 import { useToast } from "@/hooks/use-toast";
-import { ModuleType } from "@shared/schema";
+
+type ModuleType = "swap" | "jupiterSwap" | "stake" | "claim" | "bridge" | "lightning";
 
 type CommonConfig = {
   moduleName: string;

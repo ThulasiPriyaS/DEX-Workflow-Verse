@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
-import { ModuleType } from "@shared/schema";
+
+type ModuleType = "swap" | "jupiterSwap" | "stake" | "claim" | "bridge" | "lightning";
 
 interface NodeData {
   type: ModuleType;
@@ -16,6 +17,13 @@ const getNodeStyles = (type: ModuleType) => {
         borderLeft: "4px solid #3165F5",
         icon: "swap_horiz",
         iconColor: "#3165F5",
+      };
+    case "jupiterSwap":
+      return {
+        backgroundColor: "rgba(153, 69, 255, 0.2)",
+        borderLeft: "4px solid #9945FF",
+        icon: "currency_exchange",
+        iconColor: "#9945FF",
       };
     case "stake":
       return {
@@ -67,6 +75,33 @@ const getNodeContent = (type: ModuleType, config: any) => {
           <div className="flex justify-between items-center">
             <span>To:</span>
             <span className="font-mono">{config?.targetToken || "sBTC"}</span>
+          </div>
+        </>
+      );
+    case "jupiterSwap":
+      const getTokenSymbol = (tokenAddress: string) => {
+        if (!tokenAddress) return "None";
+        if (tokenAddress === "So11111111111111111111111111111111111111112") return "SOL";
+        
+        // For devnet tokens, try to get symbol from stored token info
+        // We'll implement a lookup from the token list later
+        const shortAddress = tokenAddress.slice(0, 4) + "..." + tokenAddress.slice(-4);
+        return shortAddress;
+      };
+      
+      return (
+        <>
+          <div className="flex justify-between items-center mb-1">
+            <span>Input:</span>
+            <span className="font-mono text-xs">{getTokenSymbol(config?.inputToken)}</span>
+          </div>
+          <div className="flex justify-between items-center mb-1">
+            <span>Output:</span>
+            <span className="font-mono text-xs">{getTokenSymbol(config?.outputToken)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>Amount:</span>
+            <span className="font-mono text-xs">{config?.amount || "0.05"}</span>
           </div>
         </>
       );

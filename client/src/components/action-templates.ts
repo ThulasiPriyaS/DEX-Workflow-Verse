@@ -96,8 +96,8 @@ export const ACTION_TEMPLATES = [
     name: "Jupiter Swap (Solana)",
     description: "Swap Solana tokens using Jupiter aggregator on Devnet",
     defaultConfig: {
-      inputToken: "So11111111111111111111111111111111111111112", // SOL
-      outputToken: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+      inputToken: "So11111111111111111111111111111111111111112", // SOL (always available)
+      outputToken: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC (if available on devnet)
       amount: "0.05",
       slippageBps: "50",
     },

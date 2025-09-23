@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ModuleType } from "@shared/schema";
+
+type ModuleType = "swap" | "jupiterSwap" | "stake" | "claim" | "bridge" | "lightning";
 
 interface ModuleCardProps {
   type: ModuleType;
