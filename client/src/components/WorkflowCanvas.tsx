@@ -19,8 +19,10 @@ import { Button } from "@/components/ui/button";
 import { WorkflowNode } from './modules/WorkflowNode';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
-import { jupiterSwap } from '@/lib/solana/jupiterSwap';
+import { jupiterSwap, DEVNET_MINTS } from '@/lib/solana/jupiterSwap';
 import { getTokenByAddress } from '@/lib/solana/tokenList';
+import { showNetworkWarning } from '@/lib/solana/networkUtils';
+import { validateDevnetSetup, getDevnetInstructions } from '@/lib/solana/devnetValidator';
 import { ACTION_TEMPLATES } from './action-templates';
 
 type ModuleType = "swap" | "jupiterSwap" | "stake" | "claim" | "bridge" | "lightning";
@@ -223,24 +225,26 @@ export function WorkflowCanvas() {
         return;
       }
 
-      // Read config from node
-      const cfg = (swapNode.data?.config || {}) as any;
-      const uiAmount = parseFloat(cfg.amount || '0.05');
-      const slippageBps = parseInt(cfg.slippageBps || '50');
+  // Read config from node
+  const cfg = (swapNode.data?.config || {}) as any;
+  const uiAmount = parseFloat(cfg.amount || '0.05');
+  const slippageBps = parseInt(cfg.slippageBps || '50');
       
-      // Get token addresses from config
-      const inputMint = cfg.inputToken;
-      const outputMint = cfg.outputToken;
+  // Get token addresses from config - if missing, default to WSOL (common devnet token)
+  const inputMint = cfg.inputToken || DEVNET_MINTS.WSOL;
+  // If output is not configured, default to devnet USDC (a different token for a real swap)
+  const outputMint = cfg.outputToken || DEVNET_MINTS.USDC;
       
       console.log('Jupiter Swap Config:', cfg);
-      console.log('Input Token:', inputMint);
-      console.log('Output Token:', outputMint);
+      console.log('Input Token (mint):', inputMint);
+      console.log('Output Token (mint):', outputMint);
       
-      if (!inputMint || !outputMint) {
-        toast({ 
-          title: 'Invalid Configuration', 
-          description: `Please configure both tokens. Input: ${inputMint ? '✓' : '✗'}, Output: ${outputMint ? '✓' : '✗'}`, 
-          variant: 'destructive' 
+      // Validate that input and output are different tokens
+      if (inputMint === outputMint) {
+        toast({
+          title: 'Invalid Swap Configuration',
+          description: 'Input and output tokens must be different. Please select a different output token in the node configuration.',
+          variant: 'destructive'
         });
         return;
       }
@@ -249,7 +253,7 @@ export function WorkflowCanvas() {
       const inputTokenInfo = getTokenByAddress(inputMint);
       const inputDecimals = inputTokenInfo?.decimals || 9;
 
-      // Phantom must be connected - note we're using mainnet for Jupiter compatibility
+      // Phantom must be connected - using devnet for Jupiter development
       const provider: any = (window as any).solana;
       if (!provider?.isPhantom) {
         toast({ title: 'Phantom Required', description: 'Install/Connect Phantom wallet.', variant: 'destructive' });
@@ -258,29 +262,75 @@ export function WorkflowCanvas() {
       if (!provider.publicKey) {
         await provider.connect();
       }
-      const userPublicKey = provider.publicKey.toString();
+      
+      // Verify we're on devnet - this is critical!
+      let userPublicKey: string;
+      try {
+        // Run devnet validation first
+        validateDevnetSetup();
+        
+        // Check network configuration 
+        console.log('🔍 Checking Phantom network configuration...');
+        const networkSafe = await showNetworkWarning();
+        
+        if (!networkSafe) {
+          console.error(getDevnetInstructions());
+          toast({ 
+            title: 'MAINNET DETECTED - BLOCKED', 
+            description: 'Switch Phantom to Devnet! Check console for instructions.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        // Connect to devnet explicitly in our code
+        userPublicKey = provider.publicKey.toString();
+        console.log('👤 Connected wallet:', userPublicKey);
+        console.log('🌐 CONFIRMED: Using devnet for Jupiter swap');
+      } catch (error) {
+        console.error('Network validation failed:', error);
+        throw new Error('Failed to validate devnet setup');
+      }
 
-      const inputSymbol = inputTokenInfo?.symbol || 'Token';
-      const outputTokenInfo = getTokenByAddress(outputMint);
-      const outputSymbol = outputTokenInfo?.symbol || 'Token';
+  const inputSymbol = inputTokenInfo?.symbol || 'Token';
+  const outputTokenInfo = getTokenByAddress(outputMint);
+  const outputSymbol = outputTokenInfo?.symbol || 'Token';
+
+  // Destination wallet: allow sending to an external address if configured in the node
+  const destinationWallet = cfg.destinationAddress || userPublicKey;
 
       toast({ 
         title: 'Executing Swap...', 
-        description: `Swapping ${uiAmount} ${inputSymbol} → ${outputSymbol} (mainnet with Jupiter)` 
+        description: `Swapping ${uiAmount} ${inputSymbol} → ${outputSymbol} (devnet with Jupiter)` 
       });
-      const { signature } = await jupiterSwap({
+      const swapResult = await jupiterSwap({
         inputMint,
         outputMint,
         uiAmount,
         inputDecimals,
         slippageBps,
         userPublicKey,
+        destinationWallet,
       });
-    
-    toast({
-        title: 'Swap Confirmed',
-        description: `Signature: ${signature.slice(0, 8)}... View in explorer`,
-    });
+
+      // Handle no-op (same-token) response
+      if (swapResult && (swapResult as any).signature === 'NO_SWAP_NEEDED') {
+        toast({
+          title: 'No Swap Needed',
+          description: (swapResult as any).message || 'Input and output token are identical; nothing to do.'
+        });
+        return;
+      }
+
+      const { signature } = swapResult as any;
+      if (signature) {
+        toast({
+          title: 'Swap Confirmed',
+          description: `Signature: ${String(signature).slice(0, 8)}... View in explorer`,
+        });
+      } else {
+        toast({ title: 'Swap Result', description: 'Swap completed (no signature available)'});
+      }
     } catch (err: any) {
       console.error(err);
       toast({ title: 'Swap Failed', description: String(err?.message || err), variant: 'destructive' });

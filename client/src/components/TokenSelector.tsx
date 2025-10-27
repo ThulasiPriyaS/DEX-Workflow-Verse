@@ -17,6 +17,7 @@ export function TokenSelector({ selectedToken, onTokenSelect, placeholder = "Sel
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [manualAddress, setManualAddress] = useState('');
 
   useEffect(() => {
     async function loadTokens() {
@@ -100,7 +101,32 @@ export function TokenSelector({ selectedToken, onTokenSelect, placeholder = "Sel
                 </div>
               ) : filteredTokens.length === 0 ? (
                 <div className="text-center py-4 text-muted-foreground">
-                  No tokens found
+                  <div>No tokens found</div>
+                  <div className="mt-3 text-sm">
+                    <div>If you are offline or the Jupiter devnet token list is unavailable, enter a token mint address manually:</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        placeholder="Enter token mint address"
+                        value={manualAddress}
+                        onChange={(e) => setManualAddress(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={() => {
+                          if (!manualAddress) return;
+                          const token: Token = {
+                            address: manualAddress,
+                            symbol: manualAddress.slice(0, 4),
+                            name: manualAddress,
+                            decimals: 9,
+                          };
+                          handleTokenSelect(token);
+                        }}
+                      >
+                        Use Address
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 filteredTokens.map((token) => (

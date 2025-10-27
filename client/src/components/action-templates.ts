@@ -94,24 +94,25 @@ export const ACTION_TEMPLATES = [
   {
     id: "jupiterSwap",
     name: "Jupiter Swap (Solana)",
-    description: "Swap Solana tokens using Jupiter aggregator on Devnet",
+    description: "Swap Solana tokens using Jupiter aggregator on Devnet (Note: Limited tokens available on devnet)",
     defaultConfig: {
-      inputToken: "So11111111111111111111111111111111111111112", // SOL (always available)
-      outputToken: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC (if available on devnet)
-      amount: "0.05",
+      inputToken: "So11111111111111111111111111111111111111112", // SOL - works on all networks
+      outputToken: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", // Devnet USDC (different from input for real swap)
+      amount: "0.001", // Very small amount for testing
       slippageBps: "50",
+      destinationAddress: "", // Optional: send to a different wallet
     },
     parameterSchema: {
       inputToken: {
         type: "tokenSelector",
-        label: "From Token",
+        label: "From Token (Mint Address)",
         description: "Token to swap from",
         required: true,
       },
       outputToken: {
         type: "tokenSelector",
-        label: "To Token", 
-        description: "Token to swap to",
+        label: "To Token (Mint Address)", 
+        description: "Token to swap to (must be different from input)",
         required: true,
       },
       amount: {
@@ -127,6 +128,13 @@ export const ACTION_TEMPLATES = [
         description: "Maximum slippage in basis points (50 = 0.5%)",
         placeholder: "50",
         defaultValue: "50",
+        required: false,
+      },
+      destinationAddress: {
+        type: "text",
+        label: "Destination Wallet Address (Optional)",
+        description: "Send output tokens to this wallet address. Leave blank to send to your connected Phantom wallet.",
+        placeholder: "iGuxDS3kyG2ss1UnXZkxdfzXaDVtkHjEyoG6oYYzBAW",
         required: false,
       },
     },

@@ -80,11 +80,12 @@ const getNodeContent = (type: ModuleType, config: any) => {
       );
     case "jupiterSwap":
       const getTokenSymbol = (tokenAddress: string) => {
-        if (!tokenAddress) return "None";
+        if (!tokenAddress) return "Select Token";
         if (tokenAddress === "So11111111111111111111111111111111111111112") return "SOL";
+        if (tokenAddress === "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU") return "USDC";
+        if (tokenAddress === "BRjpCHtyQLNCo8gqRUr8jtdAj5AjPYQaoqbvcZiHok1k") return "USDT";
         
-        // For devnet tokens, try to get symbol from stored token info
-        // We'll implement a lookup from the token list later
+        // For unknown devnet tokens, show shortened address
         const shortAddress = tokenAddress.slice(0, 4) + "..." + tokenAddress.slice(-4);
         return shortAddress;
       };
@@ -99,9 +100,12 @@ const getNodeContent = (type: ModuleType, config: any) => {
             <span>Output:</span>
             <span className="font-mono text-xs">{getTokenSymbol(config?.outputToken)}</span>
           </div>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-1">
             <span>Amount:</span>
             <span className="font-mono text-xs">{config?.amount || "0.05"}</span>
+          </div>
+          <div className="flex justify-center items-center">
+            <span className="text-[10px] text-green-400">🌐 Devnet</span>
           </div>
         </>
       );

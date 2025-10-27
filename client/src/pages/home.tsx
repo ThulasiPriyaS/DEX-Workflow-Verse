@@ -8,7 +8,6 @@ import { WorkflowCanvasWrapper } from "@/components/WorkflowCanvas";
 import { ConfigPanel } from "@/components/ConfigPanel";
 import { Button } from "@/components/ui/button";
 // import { useWorkflow } from "@/hooks/use-workflow";
-import { Toaster } from "@/components/ui/toaster";
 
 interface Wallet {
   address: string;

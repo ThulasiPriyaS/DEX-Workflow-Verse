@@ -4,7 +4,7 @@ import { users, workflows, workflowActions, workflowExecutions,
   type WorkflowExecution, type InsertWorkflowExecution,
   type ExecutionStatus
 } from "@shared/schema";
-import { db } from "./db";
+import { db, usingNeon } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -190,4 +190,78 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Simple in-memory fallback storage used when a real DB isn't available (local dev)
+class InMemoryStorage implements IStorage {
+  private users: User[] = [];
+  private workflows: Workflow[] = [];
+  private actions: WorkflowAction[] = [];
+  private executions: WorkflowExecution[] = [];
+  private idCounter = 1;
+
+  // User methods
+  async getUser(id: number) { return this.users.find(u => u.id === id); }
+  async getUserByUsername(username: string) { return this.users.find(u => u.username === username); }
+  async createUser(user: InsertUser) {
+    const newUser = { ...user, id: this.idCounter++ } as unknown as User;
+    this.users.push(newUser);
+    return newUser;
+  }
+
+  // Workflow methods
+  async getWorkflows() { return this.workflows; }
+  async getWorkflow(id: number) { return this.workflows.find(w => w.id === id); }
+  async createWorkflow(workflow: InsertWorkflow) {
+    const newWorkflow = { ...(workflow as any), id: this.idCounter++ } as unknown as Workflow;
+    this.workflows.push(newWorkflow);
+    return newWorkflow;
+  }
+  async updateWorkflow(id: number, workflow: Partial<InsertWorkflow>) {
+    const idx = this.workflows.findIndex(w => w.id === id);
+    if (idx === -1) return undefined;
+    this.workflows[idx] = { ...this.workflows[idx], ...workflow } as Workflow;
+    return this.workflows[idx];
+  }
+  async deleteWorkflow(id: number) {
+    const idx = this.workflows.findIndex(w => w.id === id);
+    if (idx === -1) return false;
+    this.workflows.splice(idx, 1);
+    return true;
+  }
+
+  // Actions
+  async getWorkflowActions(workflowId: number) { return this.actions.filter(a => a.workflowId === workflowId); }
+  async createWorkflowAction(action: InsertWorkflowAction) {
+    const newAction = { ...(action as any), id: this.idCounter++ } as unknown as WorkflowAction;
+    this.actions.push(newAction);
+    return newAction;
+  }
+  async updateWorkflowAction(id: number, action: Partial<InsertWorkflowAction>) {
+    const idx = this.actions.findIndex(a => a.id === id);
+    if (idx === -1) return undefined;
+    this.actions[idx] = { ...this.actions[idx], ...action } as WorkflowAction;
+    return this.actions[idx];
+  }
+  async deleteWorkflowAction(id: number) {
+    const idx = this.actions.findIndex(a => a.id === id);
+    if (idx === -1) return false;
+    this.actions.splice(idx, 1);
+    return true;
+  }
+
+  // Executions
+  async getWorkflowExecutions(workflowId: number) { return this.executions.filter(e => e.workflowId === workflowId); }
+  async getWorkflowExecution(id: number) { return this.executions.find(e => e.id === id); }
+  async createWorkflowExecution(execution: InsertWorkflowExecution) {
+    const newExec = { ...(execution as any), id: this.idCounter++, startedAt: new Date(), status: execution.status } as unknown as WorkflowExecution;
+    this.executions.push(newExec);
+    return newExec;
+  }
+  async updateWorkflowExecutionStatus(id: number, status: ExecutionStatus, result?: Record<string, any>, error?: string) {
+    const idx = this.executions.findIndex(e => e.id === id);
+    if (idx === -1) return undefined;
+    this.executions[idx] = { ...this.executions[idx], status, result: result || this.executions[idx].result, error: error || this.executions[idx].error, completedAt: (status === 'completed' || status === 'failed') ? new Date() : undefined } as WorkflowExecution;
+    return this.executions[idx];
+  }
+}
+
+export const storage = usingNeon && db ? new DatabaseStorage() : new InMemoryStorage();

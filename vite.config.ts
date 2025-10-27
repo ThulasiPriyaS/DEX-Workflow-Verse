@@ -19,6 +19,17 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  // Development server proxy so frontend can call /api/* and hit the backend (running on :5000)
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path, // keep the original path
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
