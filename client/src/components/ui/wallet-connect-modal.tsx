@@ -1,11 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export interface WalletOption {
   id: string;
   name: string;
   icon: string;
+  available?: boolean;
 }
 
 interface WalletConnectModalProps {
@@ -14,37 +15,72 @@ interface WalletConnectModalProps {
   onConnect: (address: string, privateKey?: string) => void;
 }
 
-const WALLET_OPTIONS: WalletOption[] = [
-  {
-    id: "bitcoin-wallet",
-    name: "Bitcoin Wallet",
-    icon: "currency_bitcoin",
-  },
-  {
-    id: "metamask",
-    name: "MetaMask",
-    icon: "account_balance_wallet",
-  },
-  {
-    id: "wallet-connect",
-    name: "WalletConnect",
-    icon: "link",
-  },
-];
+declare global {
+  interface Window {
+    solana?: {
+      isPhantom?: boolean;
+      connect: () => Promise<{ publicKey: { toString: () => string } }>;
+      disconnect: () => Promise<void>;
+      publicKey?: { toString: () => string };
+    };
+  }
+}
 
 export function WalletConnectModal({ isOpen, onClose, onConnect }: WalletConnectModalProps) {
   const [manualMode, setManualMode] = useState(false);
   const [manualAddress, setManualAddress] = useState("");
   const [manualKey, setManualKey] = useState("");
   const [error, setError] = useState("");
+  const [phantomAvailable, setPhantomAvailable] = useState(false);
 
-  const handleConnect = (walletId: string) => {
-    // Simulate wallet connection
+  useEffect(() => {
+    // Check if Phantom is installed
+    setPhantomAvailable(!!window.solana?.isPhantom);
+  }, [isOpen]);
+
+  const WALLET_OPTIONS: WalletOption[] = [
+    {
+      id: "phantom",
+      name: "Phantom (Solana)",
+      icon: "account_balance_wallet",
+      available: phantomAvailable,
+    },
+    {
+      id: "metamask",
+      name: "MetaMask (Ethereum)",
+      icon: "account_balance_wallet",
+    },
+    {
+      id: "wallet-connect",
+      name: "WalletConnect",
+      icon: "link",
+    },
+  ];
+
+  const handleConnect = async (walletId: string) => {
+    setError("");
+    
+    if (walletId === "phantom") {
+      // Connect to Phantom wallet
+      if (!window.solana?.isPhantom) {
+        setError("Phantom wallet not found. Please install it from phantom.app");
+        window.open("https://phantom.app", "_blank");
+        return;
+      }
+
+      try {
+        const response = await window.solana.connect();
+        const address = response.publicKey.toString();
+        onConnect(address);
+      } catch (err: any) {
+        setError(err.message || "Failed to connect to Phantom");
+      }
+      return;
+    }
+
+    // Mock addresses for other wallets (for demo purposes)
     let mockAddress = "";
     switch (walletId) {
-      case "bitcoin-wallet":
-        mockAddress = "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh";
-        break;
       case "metamask":
         mockAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         break;
@@ -79,18 +115,28 @@ export function WalletConnectModal({ isOpen, onClose, onConnect }: WalletConnect
         {!manualMode ? (
           <>
         <div className="space-y-3 my-2">
+          {error && <div className="text-sm text-red-500 p-2 bg-red-500/10 rounded">{error}</div>}
           {WALLET_OPTIONS.map((wallet) => (
             <Button
               key={wallet.id}
               variant="outline"
               onClick={() => handleConnect(wallet.id)}
               className="w-full bg-dark-100 hover:bg-dark-300 transition p-3 rounded flex items-center justify-between h-auto"
+              disabled={wallet.id === "phantom" && !wallet.available}
             >
               <div className="flex items-center">
                 <div className="w-8 h-8 rounded flex items-center justify-center mr-3 bg-dark-300">
                   <span className="material-icons text-primary">{wallet.icon}</span>
                 </div>
-                <span>{wallet.name}</span>
+                <div className="flex flex-col items-start">
+                  <span>{wallet.name}</span>
+                  {wallet.id === "phantom" && !wallet.available && (
+                    <span className="text-xs text-gray-400">Not installed</span>
+                  )}
+                  {wallet.id === "phantom" && wallet.available && (
+                    <span className="text-xs text-green-400">✓ Detected</span>
+                  )}
+                </div>
               </div>
               <span className="material-icons text-gray-400">chevron_right</span>
             </Button>
