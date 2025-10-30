@@ -34,8 +34,23 @@ export function WalletConnectModal({ isOpen, onClose, onConnect }: WalletConnect
   const [phantomAvailable, setPhantomAvailable] = useState(false);
 
   useEffect(() => {
-    // Check if Phantom is installed
-    setPhantomAvailable(!!window.solana?.isPhantom);
+    // Check if Phantom is installed (sometimes it takes a moment to load)
+    const checkPhantom = () => {
+      const isAvailable = !!window.solana?.isPhantom;
+      console.log('Phantom detection:', { 
+        windowSolana: !!window.solana, 
+        isPhantom: window.solana?.isPhantom,
+        available: isAvailable 
+      });
+      setPhantomAvailable(isAvailable);
+    };
+
+    checkPhantom();
+
+    // Phantom might not be loaded immediately, check again after a delay
+    const timeout = setTimeout(checkPhantom, 500);
+    
+    return () => clearTimeout(timeout);
   }, [isOpen]);
 
   const WALLET_OPTIONS: WalletOption[] = [
