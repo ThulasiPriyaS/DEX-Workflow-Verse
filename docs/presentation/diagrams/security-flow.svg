@@ -1,0 +1,89 @@
+<svg viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg">
+  <!-- Security Flow Diagram -->
+  
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="24" font-weight="bold" fill="#1F2937">Non-Custodial Security Flow</text>
+  
+  <!-- Step 1: User Designs -->
+  <rect x="350" y="60" width="200" height="60" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2" rx="5"/>
+  <text x="450" y="85" text-anchor="middle" font-size="14" font-weight="bold" fill="#1E40AF">1. User Designs Workflow</text>
+  <text x="450" y="105" text-anchor="middle" font-size="12" fill="#3B82F6">Visual Interface</text>
+  
+  <path d="M 450 120 L 450 150" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Step 2: Orchestrator Builds -->
+  <rect x="350" y="150" width="200" height="60" fill="#F0FDF4" stroke="#10B981" stroke-width="2" rx="5"/>
+  <text x="450" y="175" text-anchor="middle" font-size="14" font-weight="bold" fill="#065F46">2. Orchestrator Builds TX</text>
+  <text x="450" y="195" text-anchor="middle" font-size="12" fill="#10B981">Server-Side (No Keys)</text>
+  
+  <path d="M 450 210 L 450 240" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Step 3: Send to Client -->
+  <rect x="350" y="240" width="200" height="60" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" rx="5"/>
+  <text x="450" y="265" text-anchor="middle" font-size="14" font-weight="bold" fill="#92400E">3. Unsigned TX → Client</text>
+  <text x="450" y="285" text-anchor="middle" font-size="12" fill="#F59E0B">No Private Key Transfer</text>
+  
+  <path d="M 450 300 L 450 330" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Step 4: User Reviews (CRITICAL) -->
+  <rect x="320" y="330" width="260" height="80" fill="#FEE2E2" stroke="#EF4444" stroke-width="3" rx="5"/>
+  <text x="450" y="360" text-anchor="middle" font-size="16" font-weight="bold" fill="#991B1B">4. User Reviews in Phantom</text>
+  <text x="450" y="380" text-anchor="middle" font-size="12" fill="#DC2626">🔍 Full Transaction Details</text>
+  <text x="450" y="400" text-anchor="middle" font-size="12" fill="#DC2626">🔐 Client-Side Only</text>
+  
+  <path d="M 450 410 L 450 440" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Step 5: User Signs -->
+  <rect x="350" y="440" width="200" height="60" fill="#DBEAFE" stroke="#3B82F6" stroke-width="2" rx="5"/>
+  <text x="450" y="465" text-anchor="middle" font-size="14" font-weight="bold" fill="#1E40AF">5. User Approves & Signs</text>
+  <text x="450" y="485" text-anchor="middle" font-size="12" fill="#3B82F6">Private Key in Wallet</text>
+  
+  <path d="M 450 500 L 450 530" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Step 6: Submit -->
+  <rect x="350" y="530" width="200" height="60" fill="#F0FDF4" stroke="#10B981" stroke-width="2" rx="5"/>
+  <text x="450" y="555" text-anchor="middle" font-size="14" font-weight="bold" fill="#065F46">6. Submit to Blockchain</text>
+  <text x="450" y="575" text-anchor="middle" font-size="12" fill="#10B981">Signed Transaction</text>
+  
+  <path d="M 450 590 L 450 620" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <!-- Step 7: Confirmation -->
+  <rect x="350" y="620" width="200" height="60" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="2" rx="5"/>
+  <text x="450" y="645" text-anchor="middle" font-size="14" font-weight="bold" fill="#5B21B6">7. Confirmation & Logging</text>
+  <text x="450" y="665" text-anchor="middle" font-size="12" fill="#8B5CF6">Audit Trail Created</text>
+  
+  <!-- Security Features (Right Side) -->
+  <rect x="620" y="150" width="250" height="400" fill="#F9FAFB" stroke="#D1D5DB" stroke-width="1" rx="5"/>
+  <text x="745" y="180" text-anchor="middle" font-size="16" font-weight="bold" fill="#1F2937">Security Features</text>
+  
+  <text x="640" y="220" font-size="14" fill="#065F46">🔐 Zero-Trust Backend</text>
+  <text x="655" y="240" font-size="11" fill="#6B7280">Server never accesses keys</text>
+  
+  <text x="640" y="280" font-size="14" fill="#065F46">✅ Transaction Preview</text>
+  <text x="655" y="300" font-size="11" fill="#6B7280">Full details before signing</text>
+  
+  <text x="640" y="340" font-size="14" fill="#065F46">🚫 No Key Export</text>
+  <text x="655" y="360" font-size="11" fill="#6B7280">Keys stay in wallet</text>
+  
+  <text x="640" y="400" font-size="14" fill="#065F46">⏱️ Optional Permits</text>
+  <text x="655" y="420" font-size="11" fill="#6B7280">Time-limited, scoped</text>
+  
+  <text x="640" y="460" font-size="14" fill="#065F46">📊 Complete Audit Trail</text>
+  <text x="655" y="480" font-size="11" fill="#6B7280">All operations logged</text>
+  
+  <text x="640" y="520" font-size="14" fill="#065F46">🛡️ WAF Protection</text>
+  <text x="655" y="540" font-size="11" fill="#6B7280">Network security layer</text>
+  
+  <!-- Wallet Icon (Left Side) -->
+  <circle cx="180" cy="380" r="80" fill="#FEF3C7" stroke="#F59E0B" stroke-width="3"/>
+  <text x="180" y="370" text-anchor="middle" font-size="50" fill="#F59E0B">👛</text>
+  <text x="180" y="420" text-anchor="middle" font-size="14" font-weight="bold" fill="#92400E">Phantom</text>
+  <text x="180" y="440" text-anchor="middle" font-size="11" fill="#92400E">User Control</text>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6B7280"/>
+    </marker>
+  </defs>
+</svg>

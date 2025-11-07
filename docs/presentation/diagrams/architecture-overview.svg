@@ -1,0 +1,49 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Architecture Overview Diagram -->
+  
+  <!-- Presentation Layer -->
+  <rect x="100" y="50" width="600" height="100" fill="#4F46E5" rx="10"/>
+  <text x="400" y="85" text-anchor="middle" fill="white" font-size="20" font-weight="bold">PRESENTATION LAYER</text>
+  <text x="400" y="110" text-anchor="middle" fill="white" font-size="14">React + TypeScript | ReactFlow Visual Editor</text>
+  <text x="400" y="130" text-anchor="middle" fill="white" font-size="14">Tailwind CSS + Radix UI</text>
+  
+  <!-- Arrow 1 -->
+  <path d="M 400 150 L 400 180" stroke="#6366F1" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Orchestration Layer -->
+  <rect x="100" y="180" width="600" height="100" fill="#7C3AED" rx="10"/>
+  <text x="400" y="215" text-anchor="middle" fill="white" font-size="20" font-weight="bold">ORCHESTRATION LAYER</text>
+  <text x="400" y="240" text-anchor="middle" fill="white" font-size="14">Node.js Workflow Engine | Transaction Builder</text>
+  <text x="400" y="260" text-anchor="middle" fill="white" font-size="14">State Management & Coordination</text>
+  
+  <!-- Arrow 2 -->
+  <path d="M 400 280 L 400 310" stroke="#6366F1" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Integration Layer -->
+  <rect x="100" y="310" width="600" height="100" fill="#9333EA" rx="10"/>
+  <text x="400" y="345" text-anchor="middle" fill="white" font-size="20" font-weight="bold">INTEGRATION LAYER</text>
+  <text x="400" y="370" text-anchor="middle" fill="white" font-size="14">Solana Adapter | Jupiter Aggregator | Phantom Wallet</text>
+  <text x="400" y="390" text-anchor="middle" fill="white" font-size="14">Vercel Serverless Proxies</text>
+  
+  <!-- Arrow 3 -->
+  <path d="M 400 410 L 400 440" stroke="#6366F1" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Data Layer -->
+  <rect x="100" y="440" width="600" height="100" fill="#A855F7" rx="10"/>
+  <text x="400" y="475" text-anchor="middle" fill="white" font-size="20" font-weight="bold">DATA LAYER</text>
+  <text x="400" y="500" text-anchor="middle" fill="white" font-size="14">PostgreSQL (Neon) | Workflow Definitions</text>
+  <text x="400" y="520" text-anchor="middle" fill="white" font-size="14">Execution Logs & Analytics</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6366F1" />
+    </marker>
+  </defs>
+  
+  <!-- Design Principles -->
+  <text x="50" y="570" fill="#6B7280" font-size="12">✓ Modularity</text>
+  <text x="200" y="570" fill="#6B7280" font-size="12">✓ Scalability</text>
+  <text x="350" y="570" fill="#6B7280" font-size="12">✓ Security-First</text>
+  <text x="500" y="570" fill="#6B7280" font-size="12">✓ Extensibility</text>
+</svg>

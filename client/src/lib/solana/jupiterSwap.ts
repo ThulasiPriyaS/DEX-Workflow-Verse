@@ -61,6 +61,15 @@ export async function jupiterSwap(params: {
   // Optional destination wallet (recipient). If omitted, defaults to the signer (userPublicKey).
   destinationWallet?: string;
 }) {
+  console.error(`
+╔════════════════════════════════════════════════════╗
+║  ⚠️  WARNING: OLD jupiterSwap() FUNCTION CALLED!   ║
+║  This function makes REAL API calls!               ║
+║  Should use executeJupiterSwap() from              ║
+║  jupiterSwapWithMock.ts instead!                   ║
+╚════════════════════════════════════════════════════╝
+  `);
+  
   const { inputMint, outputMint, uiAmount, inputDecimals, slippageBps, userPublicKey } = params;
   const destinationWallet = params.destinationWallet || userPublicKey;
 

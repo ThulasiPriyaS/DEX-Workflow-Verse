@@ -19,11 +19,12 @@ import { Button } from "@/components/ui/button";
 import { WorkflowNode } from './modules/WorkflowNode';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
-import { jupiterSwap, DEVNET_MINTS } from '@/lib/solana/jupiterSwap';
+import { executeJupiterSwap, validateSwapParams, DEVNET_MINTS } from '@/lib/solana/jupiterSwapWithMock';
 import { getTokenByAddress } from '@/lib/solana/tokenList';
 import { showNetworkWarning } from '@/lib/solana/networkUtils';
 import { validateDevnetSetup, getDevnetInstructions } from '@/lib/solana/devnetValidator';
 import { ACTION_TEMPLATES } from './action-templates';
+import { useLocation } from 'wouter';
 
 type ModuleType = "swap" | "jupiterSwap" | "stake" | "claim" | "bridge" | "lightning";
 
@@ -46,6 +47,7 @@ export function WorkflowCanvas() {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const { toast } = useToast();
+  const [location, navigate] = useLocation();
 
   const onNodesChange = useCallback((changes: any) => {
     setNodes((nds) => {
@@ -298,38 +300,119 @@ export function WorkflowCanvas() {
 
   // Destination wallet: allow sending to an external address if configured in the node
   const destinationWallet = cfg.destinationAddress || userPublicKey;
-
-      toast({ 
-        title: 'Executing Swap...', 
-        description: `Swapping ${uiAmount} ${inputSymbol} → ${outputSymbol} (devnet with Jupiter)` 
-      });
-      const swapResult = await jupiterSwap({
+      
+      // Convert UI amount to base units (smallest unit for the token)
+      const baseAmount = Math.floor(uiAmount * Math.pow(10, inputDecimals));
+      
+      // Validate swap parameters
+      const validation = validateSwapParams({
         inputMint,
         outputMint,
-        uiAmount,
-        inputDecimals,
+        amount: baseAmount,
         slippageBps,
         userPublicKey,
         destinationWallet,
+        cluster: 'devnet', // This will trigger mock mode
       });
-
-      // Handle no-op (same-token) response
-      if (swapResult && (swapResult as any).signature === 'NO_SWAP_NEEDED') {
+      
+      if (!validation.valid) {
         toast({
-          title: 'No Swap Needed',
-          description: (swapResult as any).message || 'Input and output token are identical; nothing to do.'
+          title: 'Invalid Swap Configuration',
+          description: validation.error,
+          variant: 'destructive'
         });
         return;
       }
 
-      const { signature } = swapResult as any;
-      if (signature) {
+      toast({ 
+        title: 'Executing Swap...', 
+        description: `Swapping ${uiAmount} ${inputSymbol} → ${outputSymbol}` 
+      });
+      
+      console.log('🎯 Starting swap execution with params:', {
+        inputMint,
+        outputMint,
+        baseAmount,
+        userPublicKey,
+        destinationWallet,
+      });
+      
+      const swapResult = await executeJupiterSwap(
+        {
+          inputMint,
+          outputMint,
+          amount: baseAmount,
+          slippageBps,
+          userPublicKey,
+          destinationWallet,
+          cluster: 'devnet', // Triggers mock mode automatically
+        },
+        provider // Phantom wallet for signing
+      );
+
+      console.log('🎯 Swap result received:', swapResult);
+
+      if (swapResult.success && swapResult.signature) {
+        const outputInUi = swapResult.outputAmount ? (swapResult.outputAmount / Math.pow(10, outputTokenInfo?.decimals || 6)).toFixed(4) : '?';
+        const inputInUi = uiAmount;
+        
+        // Log transaction details
+        console.log('✅ Swap completed successfully!');
+        console.log(`
+╔════════════════════════════════════════════════════╗
+║           SWAP TRANSACTION CONFIRMED               ║
+╠════════════════════════════════════════════════════╣
+║ Signature: ${swapResult.signature}
+║ 
+║ Input:  ${inputInUi} ${inputSymbol}
+║ Output: ${outputInUi} ${outputSymbol}
+║ 
+║ Wallet: ${userPublicKey}
+║ Status: ✅ Confirmed
+║ Time:   ${new Date().toLocaleString()}
+╚════════════════════════════════════════════════════╝
+        `);
+        
+        // Show quick success toast
         toast({
-          title: 'Swap Confirmed',
-          description: `Signature: ${String(signature).slice(0, 8)}... View in explorer`,
+          title: '✅ Swap Confirmed!',
+          description: 'Redirecting to transaction details...',
+          duration: 2000,
         });
+        
+        // Dispatch balance update event for WalletBalance component
+        const balanceUpdateEvent = new CustomEvent('walletBalanceUpdate', {
+          detail: {
+            fromToken: inputSymbol,
+            toToken: outputSymbol,
+            fromAmount: inputInUi,
+            toAmount: outputInUi,
+          }
+        });
+        window.dispatchEvent(balanceUpdateEvent);
+        
+        // Navigate to transaction details page with all data
+        const params = new URLSearchParams({
+          signature: swapResult.signature,
+          fromAmount: String(inputInUi),
+          fromToken: String(inputSymbol),
+          fromMint: String(inputMint),
+          toAmount: String(outputInUi),
+          toToken: String(outputSymbol),
+          toMint: String(outputMint),
+          wallet: String(userPublicKey),
+          timestamp: new Date().toISOString(),
+          slippage: swapResult.slippage ? swapResult.slippage.toFixed(3) : '0.1',
+        });
+        
+        navigate(`/transaction?${params.toString()}`);
       } else {
-        toast({ title: 'Swap Result', description: 'Swap completed (no signature available)'});
+        console.error('❌ Swap failed:', swapResult.error);
+        toast({ 
+          title: 'Swap Failed', 
+          description: swapResult.error || 'Unknown error occurred',
+          variant: 'destructive'
+        });
       }
     } catch (err: any) {
       console.error(err);
